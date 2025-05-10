@@ -44,7 +44,7 @@ app.use(cors({
 }));
 app.use(sanitizeInput);
 
-// Cấu hình CSP (xóa Bootstrap CDN)
+// Cấu hình CSP
 app.use(helmet.contentSecurityPolicy({
     directives: {
         defaultSrc: ["'self'"],
@@ -63,6 +63,25 @@ app.use(express.static('public'));
 // Route gốc để trả về index.html
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
+});
+
+// API lấy thông tin chi tiết học sinh theo id
+app.get('/api/students/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const parsedId = parseInt(id);
+        if (isNaN(parsedId)) {
+            return res.status(400).json({ message: 'Invalid ID format' });
+        }
+
+        const student = await Student.findOne({ id: parsedId }, { id: 1, ho_ten: 1, ngay_sinh: 1, gioi_tinh: 1, dia_chi: 1, fb_url: 1, _id: 0 });
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+        res.status(200).json(student);
+    } catch (err) {
+        res.status(500).json({ message: 'Error fetching student', error: err.message });
+    }
 });
 
 // API lấy danh sách học sinh

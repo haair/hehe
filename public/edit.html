@@ -58,17 +58,18 @@
 
             try {
                 const response = await fetch(`https://student-api-451c.onrender.com/api/students/${studentId}`);
-                const student = await response.json();
-                if (response.ok && student) {
-                    document.getElementById('hoTenInput').value = student.ho_ten || '';
-                    document.getElementById('ngaySinhInput').value = student.ngay_sinh || '';
-                    document.getElementById('gioiTinhInput').value = student.gioi_tinh || '';
-                    document.getElementById('diaChiInput').value = student.dia_chi || '';
-                    document.getElementById('fbUrlInput').value = student.fb_url || '';
-                } else {
-                    alert('Không tìm thấy học sinh');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    alert(errorData.message || 'Không tìm thấy học sinh');
                     window.location.href = 'index.html';
+                    return;
                 }
+                const student = await response.json();
+                document.getElementById('hoTenInput').value = student.ho_ten || '';
+                document.getElementById('ngaySinhInput').value = student.ngay_sinh || '';
+                document.getElementById('gioiTinhInput').value = student.gioi_tinh || '';
+                document.getElementById('diaChiInput').value = student.dia_chi || '';
+                document.getElementById('fbUrlInput').value = student.fb_url || '';
             } catch (error) {
                 console.error('Lỗi khi lấy dữ liệu học sinh:', error);
                 alert('Lỗi khi lấy dữ liệu học sinh');
