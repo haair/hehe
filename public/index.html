@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách học sinh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h2 class="text-3xl font-bold text-center mb-6 text-gray-800">Danh sách học sinh</h2>
+
+        <div class="mb-6 p-4 bg-white rounded-lg shadow-md">
+            <div class="flex flex-wrap gap-4">
+                <input type="text" id="searchHoTenInput" placeholder="Tìm kiếm theo họ tên" oninput="searchStudents()"
+                    class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1">
+                <input type="text" id="searchGioiTinhInput" placeholder="Tìm kiếm theo giới tính"
+                    oninput="searchStudents()"
+                    class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1">
+                <input type="text" id="searchDiaChiInput" placeholder="Tìm kiếm theo địa chỉ" oninput="searchStudents()"
+                    class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1">
+            </div>
+        </div>
+
+        <div class="mb-6 p-4 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-semibold mb-4 text-gray-700">Thêm học sinh mới</h3>
+            <div class="flex flex-wrap gap-4">
+                <input type="text" id="hoTenInput" placeholder="Họ và tên"
+                    class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1">
+                <input type="text" id="ngaySinhInput" placeholder="Ngày sinh (dd/mm/yyyy)"
+                    class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1">
+                <input type="text" id="gioiTinhInput" placeholder="Giới tính"
+                    class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1">
+                <input type="text" id="diaChiInput" placeholder="Địa chỉ"
+                    class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1">
+                <input type="text" id="fbUrlInput" placeholder="Facebook URL"
+                    class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1">
+                <button onclick="addStudent()"
+                    class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Thêm</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table id="studentTable" class="w-full bg-white rounded-lg shadow-md">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-700">
+                        <th class="p-3 text-left">ID</th>
+                        <th class="p-3 text-left">Họ và tên</th>
+                        <th class="p-3 text-left">Ngày sinh</th>
+                        <th class="p-3 text-left">Giới tính</th>
+                        <th class="p-3 text-left">Địa chỉ</th>
+                        <th class="p-3 text-left">Facebook URL</th>
+                        <th class="p-3 text-left">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="studentBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function fetchStudents() {
+            try {
+                const response = await fetch('http://localhost:3000/api/students');
+                const students = await response.json();
+                displayStudents(students);
+            } catch (error) {
+                console.error('Lỗi khi lấy dữ liệu:', error);
+                alert('Không thể tải danh sách học sinh. Vui lòng kiểm tra server.');
+            }
+        }
+
+        function displayStudents(students) {
+            const tbody = document.getElementById('studentBody');
+            tbody.innerHTML = '';
+
+            students.forEach(student => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="p-3">${student.id || 'N/A'}</td>
+                    <td class="p-3">${student.ho_ten || 'N/A'}</td>
+                    <td class="p-3">${student.ngay_sinh || 'N/A'}</td>
+                    <td class="p-3">${student.gioi_tinh || 'N/A'}</td>
+                    <td class="p-3">${student.dia_chi || 'N/A'}</td>
+                    <td class="p-3">
+                        ${student.fb_url ?
+                        `<a href="${student.fb_url}" target="_blank" class="text-blue-500 hover:underline">Link</a>` :
+                        'N/A'}
+                    </td>
+                    <td class="p-3">
+                        <button onclick="editStudent(${student.id})" class="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600 transition mr-2">Sửa</button>
+                        <button onclick="deleteStudent(${student.id})" class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition">Xóa</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function addStudent() {
+            const ho_ten = document.getElementById('hoTenInput').value;
+            const ngay_sinh = document.getElementById('ngaySinhInput').value;
+            const gioi_tinh = document.getElementById('gioiTinhInput').value;
+            const dia_chi = document.getElementById('diaChiInput').value;
+            const fb_url = document.getElementById('fbUrlInput').value;
+
+            if (!ho_ten || !ngay_sinh || !gioi_tinh || !dia_chi) {
+                alert('Vui lòng điền đầy đủ thông tin (trừ Facebook URL)');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3000/api/students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ho_ten, ngay_sinh, gioi_tinh, dia_chi, fb_url }),
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert('Thêm học sinh thành công');
+                    fetchStudents();
+                    clearForm();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Lỗi khi thêm học sinh:', error);
+                alert('Lỗi khi thêm học sinh');
+            }
+        }
+
+        function editStudent(id) {
+            window.location.href = `edit.html?id=${id}`;
+        }
+
+        async function deleteStudent(id) {
+            if (confirm('Bạn có chắc muốn xóa học sinh này?')) {
+                try {
+                    const response = await fetch(`http://localhost:3000/api/students/${id}`, { method: 'DELETE' });
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert('Xóa học sinh thành công');
+                        fetchStudents();
+                    } else {
+                        alert(result.message);
+                    }
+                } catch (error) {
+                    console.error('Lỗi khi xóa học sinh:', error);
+                    alert('Lỗi khi xóa học sinh');
+                }
+            }
+        }
+
+        function debounce(func, delay) {
+            let timeoutId;
+            return function (...args) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        const searchStudents = debounce(async () => {
+            const ho_ten = document.getElementById('searchHoTenInput').value;
+            const gioi_tinh = document.getElementById('searchGioiTinhInput').value;
+            const dia_chi = document.getElementById('searchDiaChiInput').value;
+
+            try {
+                if (!ho_ten && !gioi_tinh && !dia_chi) {
+                    fetchStudents();
+                    return;
+                }
+
+                const queryParams = new URLSearchParams();
+                if (ho_ten) queryParams.append('ho_ten', ho_ten);
+                if (gioi_tinh) queryParams.append('gioi_tinh', gioi_tinh);
+                if (dia_chi) queryParams.append('dia_chi', dia_chi);
+
+                const response = await fetch(`http://localhost:3000/api/students/search?${queryParams.toString()}`);
+                const students = await response.json();
+                displayStudents(students);
+            } catch (error) {
+                console.error('Lỗi khi tìm kiếm:', error);
+                alert('Lỗi khi tìm kiếm học sinh');
+            }
+        }, 300);
+
+        function clearForm() {
+            document.getElementById('hoTenInput').value = '';
+            document.getElementById('ngaySinhInput').value = '';
+            document.getElementById('gioiTinhInput').value = '';
+            document.getElementById('diaChiInput').value = '';
+            document.getElementById('fbUrlInput').value = '';
+        }
+
+        window.onload = fetchStudents;
+    </script>
+</body>
+
+</html>
