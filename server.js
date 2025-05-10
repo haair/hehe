@@ -46,6 +46,17 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(sanitizeInput);
+
+// Cấu hình CSP để cho phép tải Tailwind CSS từ CDN
+app.use(helmet.contentSecurityPolicy({
+    directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://cdn.tailwindcss.com"],
+        styleSrc: ["'self'", "https://cdn.tailwindcss.com"],
+        connectSrc: ["'self'", "https://*.onrender.com"], // Cho phép kết nối API
+        imgSrc: ["'self'", "data:"],
+    },
+}));
 app.use(helmet());
 app.use(compression());
 
