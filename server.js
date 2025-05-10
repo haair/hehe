@@ -45,15 +45,15 @@ app.use(cors({
 app.use(sanitizeInput);
 
 // Cấu hình CSP
-app.use(helmet.contentSecurityPolicy({
-    directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'"],
-        connectSrc: ["'self'", "https://*.onrender.com"],
-        imgSrc: ["'self'", "data:"],
-    },
-}));
+// app.use(helmet.contentSecurityPolicy({
+//     directives: {
+//         defaultSrc: ["'self'"],
+//         scriptSrc: ["'self'"],
+//         styleSrc: ["'self'"],
+//         connectSrc: ["'self'", "https://*.onrender.com"],
+//         imgSrc: ["'self'", "data:"],
+//     },
+// }));
 app.use(helmet());
 app.use(compression());
 
