@@ -11,10 +11,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Kết nối MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('Connected to MongoDB Atlas'))
     .catch((err) => console.error('MongoDB connection error:', err));
 
@@ -41,7 +38,7 @@ const sanitizeInput = (req, res, next) => {
 // Sử dụng middleware
 app.use(express.json());
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+    origin: [process.env.FRONTEND_URL || 'http://localhost:8080', 'null'], // Thêm 'null' cho test local
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
