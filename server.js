@@ -2,8 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const helmet = require('helmet'); // Thêm helmet để bảo mật HTTP headers
-const compression = require('compression'); // Thêm compression để tối ưu băng thông
+const helmet = require('helmet');
+const compression = require('compression');
 
 dotenv.config();
 
@@ -40,47 +40,22 @@ const sanitizeInput = (req, res, next) => {
 
 // Sử dụng middleware
 app.use(express.json());
-app.use(cors());
-app.use(sanitizeInput);
-app.use(helmet()); // Bảo mật HTTP headers
-app.use(compression()); // Nén response để tối ưu băng thông
-
-// Chỉ cho phép truy cập từ domain cụ thể (thay thế '*' bằng domain của bạn)
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:8080', // Thay bằng domain frontend của bạn
+    origin: process.env.FRONTEND_URL || 'http://localhost:8080',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+app.use(sanitizeInput);
+app.use(helmet());
+app.use(compression());
 
-// Schema cho counters (dùng để tự động tăng id)
-const counterSchema = new mongoose.Schema({
-    _id: String,
-    sequence_value: Number,
+// Phục vụ file tĩnh từ thư mục public
+app.use(express.static('public'));
+
+// Route gốc để trả về index.html
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/index.html');
 });
-const Counter = mongoose.model('Counter', counterSchema);
-
-// Schema cho học sinh với validation
-const studentSchema = new mongoose.Schema({
-    id: { type: Number, unique: true, required: true },
-    ho_ten: { type: String, required: true, trim: true },
-    ngay_sinh: { type: String, required: true, trim: true },
-    gioi_tinh: { type: String, required: true, trim: true },
-    dia_chi: { type: String, required: true, trim: true },
-    fb_url: { type: String, trim: true },
-});
-
-// Tạo model, chỉ định rõ collection là 'student'
-const Student = mongoose.model('Student', studentSchema, 'student');
-
-// Hàm lấy và tăng giá trị id
-const getNextSequenceValue = async (sequenceName) => {
-    const sequenceDocument = await Counter.findOneAndUpdate(
-        { _id: sequenceName },
-        { $inc: { sequence_value: 1 } },
-        { new: true, upsert: true }
-    );
-    return sequenceDocument.sequence_value;
-};
 
 // API lấy danh sách học sinh
 app.get('/api/students', async (req, res) => {
@@ -191,6 +166,34 @@ app.post('/api/students/update-all', async (req, res) => {
     }
 });
 
+// Schema cho counters
+const counterSchema = new mongoose.Schema({
+    _id: String,
+    sequence_value: Number,
+});
+const Counter = mongoose.model('Counter', counterSchema);
+
+// Schema cho học sinh
+const studentSchema = new mongoose.Schema({
+    id: { type: Number, unique: true, required: true },
+    ho_ten: { type: String, required: true, trim: true },
+    ngay_sinh: { type: String, required: true, trim: true },
+    gioi_tinh: { type: String, required: true, trim: true },
+    dia_chi: { type: String, required: true, trim: true },
+    fb_url: { type: String, trim: true },
+});
+const Student = mongoose.model('Student', studentSchema, 'student');
+
+// Hàm lấy và tăng giá trị id
+const getNextSequenceValue = async (sequenceName) => {
+    const sequenceDocument = await Counter.findOneAndUpdate(
+        { _id: sequenceName },
+        { $inc: { sequence_value: 1 } },
+        { new: true, upsert: true }
+    );
+    return sequenceDocument.sequence_value;
+};
+
 // Xử lý lỗi 404
 app.use((req, res, next) => {
     res.status(404).json({ message: 'Route not found' });
@@ -201,8 +204,6 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
-
-app.use(express.static('public'));
 
 // Khởi động server
 app.listen(port, () => {
