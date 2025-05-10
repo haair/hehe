@@ -44,12 +44,12 @@ app.use(cors({
 }));
 app.use(sanitizeInput);
 
-// Cấu hình CSP (xóa Tailwind CDN, thêm Bootstrap CDN)
+// Cấu hình CSP (xóa Bootstrap CDN)
 app.use(helmet.contentSecurityPolicy({
     directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://cdn.jsdelivr.net"], // Cho phép Bootstrap JS
-        styleSrc: ["'self'", "https://cdn.jsdelivr.net"], // Cho phép Bootstrap CSS
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"],
         connectSrc: ["'self'", "https://*.onrender.com"],
         imgSrc: ["'self'", "data:"],
     },
