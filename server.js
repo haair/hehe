@@ -38,19 +38,19 @@ const sanitizeInput = (req, res, next) => {
 // Sử dụng middleware
 app.use(express.json());
 app.use(cors({
-    origin: [process.env.FRONTEND_URL || 'http://localhost:8080', 'null'], // Thêm 'null' cho test local
+    origin: [process.env.FRONTEND_URL || 'http://localhost:8080', 'null'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(sanitizeInput);
 
-// Cấu hình CSP để cho phép tải Tailwind CSS từ CDN
+// Cấu hình CSP (xóa Tailwind CDN, thêm Bootstrap CDN)
 app.use(helmet.contentSecurityPolicy({
     directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://cdn.tailwindcss.com"],
-        styleSrc: ["'self'", "https://cdn.tailwindcss.com"],
-        connectSrc: ["'self'", "https://*.onrender.com"], // Cho phép kết nối API
+        scriptSrc: ["'self'", "https://cdn.jsdelivr.net"], // Cho phép Bootstrap JS
+        styleSrc: ["'self'", "https://cdn.jsdelivr.net"], // Cho phép Bootstrap CSS
+        connectSrc: ["'self'", "https://*.onrender.com"],
         imgSrc: ["'self'", "data:"],
     },
 }));
