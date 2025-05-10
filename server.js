@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const helmet = require('helmet'); // Thêm helmet để bảo mật HTTP headers
+const compression = require('compression'); // Thêm compression để tối ưu băng thông
 
 dotenv.config();
 
@@ -16,6 +18,40 @@ mongoose.connect(process.env.MONGO_URI, {
     .then(() => console.log('Connected to MongoDB Atlas'))
     .catch((err) => console.error('MongoDB connection error:', err));
 
+// Middleware để làm sạch đầu vào (ngăn chặn NoSQL Injection cơ bản)
+const sanitizeInput = (req, res, next) => {
+    const dangerousChars = /[\$#\{\}\[\]]/g;
+    if (req.query) {
+        for (let key in req.query) {
+            if (typeof req.query[key] === 'string') {
+                req.query[key] = req.query[key].replace(dangerousChars, '');
+            }
+        }
+    }
+    if (req.body) {
+        for (let key in req.body) {
+            if (typeof req.body[key] === 'string') {
+                req.body[key] = req.body[key].replace(dangerousChars, '');
+            }
+        }
+    }
+    next();
+};
+
+// Sử dụng middleware
+app.use(express.json());
+app.use(cors());
+app.use(sanitizeInput);
+app.use(helmet()); // Bảo mật HTTP headers
+app.use(compression()); // Nén response để tối ưu băng thông
+
+// Chỉ cho phép truy cập từ domain cụ thể (thay thế '*' bằng domain của bạn)
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:8080', // Thay bằng domain frontend của bạn
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 // Schema cho counters (dùng để tự động tăng id)
 const counterSchema = new mongoose.Schema({
     _id: String,
@@ -23,14 +59,14 @@ const counterSchema = new mongoose.Schema({
 });
 const Counter = mongoose.model('Counter', counterSchema);
 
-// Schema cho học sinh, thêm trường fb_url
+// Schema cho học sinh với validation
 const studentSchema = new mongoose.Schema({
-    id: { type: Number, unique: true },
-    ho_ten: String,
-    ngay_sinh: String,
-    gioi_tinh: String,
-    dia_chi: String,
-    fb_url: String, // Thêm trường fb_url
+    id: { type: Number, unique: true, required: true },
+    ho_ten: { type: String, required: true, trim: true },
+    ngay_sinh: { type: String, required: true, trim: true },
+    gioi_tinh: { type: String, required: true, trim: true },
+    dia_chi: { type: String, required: true, trim: true },
+    fb_url: { type: String, trim: true },
 });
 
 // Tạo model, chỉ định rõ collection là 'student'
@@ -45,9 +81,6 @@ const getNextSequenceValue = async (sequenceName) => {
     );
     return sequenceDocument.sequence_value;
 };
-
-app.use(express.json());
-app.use(cors());
 
 // API lấy danh sách học sinh
 app.get('/api/students', async (req, res) => {
@@ -82,8 +115,13 @@ app.put('/api/students/:id', async (req, res) => {
         const { id } = req.params;
         const { ho_ten, ngay_sinh, gioi_tinh, dia_chi, fb_url } = req.body;
 
+        const parsedId = parseInt(id);
+        if (isNaN(parsedId)) {
+            return res.status(400).json({ message: 'Invalid ID format' });
+        }
+
         const updatedStudent = await Student.findOneAndUpdate(
-            { id: parseInt(id) },
+            { id: parsedId },
             { ho_ten, ngay_sinh, gioi_tinh, dia_chi, fb_url },
             { new: true, runValidators: true }
         );
@@ -102,7 +140,12 @@ app.put('/api/students/:id', async (req, res) => {
 app.delete('/api/students/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedStudent = await Student.findOneAndDelete({ id: parseInt(id) });
+        const parsedId = parseInt(id);
+        if (isNaN(parsedId)) {
+            return res.status(400).json({ message: 'Invalid ID format' });
+        }
+
+        const deletedStudent = await Student.findOneAndDelete({ id: parsedId });
 
         if (!deletedStudent) {
             return res.status(404).json({ message: 'Student not found' });
@@ -120,14 +163,11 @@ app.get('/api/students/search', async (req, res) => {
         const { ho_ten, gioi_tinh, dia_chi } = req.query;
         const query = {};
 
-        if (ho_ten) {
-            query.ho_ten = { $regex: ho_ten, $options: 'i' };
-        }
-        if (gioi_tinh) {
-            query.gioi_tinh = { $regex: gioi_tinh, $options: 'i' };
-        }
-        if (dia_chi) {
-            query.dia_chi = { $regex: dia_chi, $options: 'i' };
+        const allowedFields = ['ho_ten', 'gioi_tinh', 'dia_chi'];
+        for (let key in req.query) {
+            if (allowedFields.includes(key) && typeof req.query[key] === 'string') {
+                query[key] = { $regex: req.query[key], $options: 'i' };
+            }
         }
 
         const students = await Student.find(query, { id: 1, ho_ten: 1, ngay_sinh: 1, gioi_tinh: 1, dia_chi: 1, fb_url: 1, _id: 0 });
@@ -137,12 +177,12 @@ app.get('/api/students/search', async (req, res) => {
     }
 });
 
-// API cập nhật tất cả bản ghi để thêm fb_url (giá trị mặc định rỗng)
+// API cập nhật tất cả bản ghi để thêm fb_url
 app.post('/api/students/update-all', async (req, res) => {
     try {
         await Student.updateMany(
-            { fb_url: { $exists: false } }, // Chỉ cập nhật các bản ghi chưa có fb_url
-            { $set: { fb_url: '' } }, // Thêm fb_url với giá trị rỗng
+            { fb_url: { $exists: false } },
+            { $set: { fb_url: '' } },
             { upsert: false }
         );
         res.status(200).json({ message: 'All students updated with fb_url field' });
@@ -151,7 +191,20 @@ app.post('/api/students/update-all', async (req, res) => {
     }
 });
 
+// Xử lý lỗi 404
+app.use((req, res, next) => {
+    res.status(404).json({ message: 'Route not found' });
+});
+
+// Xử lý lỗi server
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: 'Something went wrong!', error: err.message });
+});
+
+app.use(express.static('public'));
+
 // Khởi động server
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`Server running on port ${port} in ${process.env.NODE_ENV} mode`);
 });
