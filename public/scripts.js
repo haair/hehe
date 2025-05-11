@@ -1,5 +1,5 @@
 // Thay bằng API key của bạn (sau khi tạo bằng /api/generate-api-key)
-const API_KEY = '93f5904153bbe3205146122cc0a6a75c'; // Ví dụ: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+const API_KEY = 'your-api-key-here'; // Ví dụ: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
 
 // Hàm cho index.html
 async function fetchStudents() {
@@ -39,11 +39,19 @@ function displayStudents(students) {
                 'N/A'}
             </td>
             <td>
-                <button onclick="editStudent(${student.id})" class="warning">Sửa</button>
-                <button onclick="deleteStudent(${student.id})" class="danger">Xóa</button>
+                <button class="warning" data-id="${student.id}">Sửa</button>
+                <button class="danger" data-id="${student.id}">Xóa</button>
             </td>
         `;
         tbody.appendChild(row);
+    });
+
+    // Gắn sự kiện cho các nút Sửa và Xóa sau khi tạo
+    document.querySelectorAll('button.warning').forEach(button => {
+        button.addEventListener('click', () => editStudent(parseInt(button.dataset.id)));
+    });
+    document.querySelectorAll('button.danger').forEach(button => {
+        button.addEventListener('click', () => deleteStudent(parseInt(button.dataset.id)));
     });
 }
 
@@ -230,9 +238,51 @@ async function updateStudent() {
     }
 }
 
-// Khởi chạy hàm khi trang load
-if (document.getElementById('studentBody')) {
-    window.onload = fetchStudents;
-} else {
-    window.onload = fetchStudent;
+// Hàm cho api-docs.html
+async function generateApiKey() {
+    try {
+        const response = await fetch('https://student-api-451c.onrender.com/api/generate-api-key', {
+            method: 'POST',
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error generating API key');
+        }
+        const data = await response.json();
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        apiKeyInput.value = data.apiKey;
+        apiKeyInput.style.display = 'block';
+        apiKeyInput.focus();
+        apiKeyInput.select();
+
+        // Sao chép vào clipboard
+        navigator.clipboard.writeText(data.apiKey).then(() => {
+            alert('API key đã được sao chép vào clipboard!');
+        }).catch(err => {
+            console.error('Lỗi khi sao chép vào clipboard:', err);
+            alert('Không thể sao chép API key. Vui lòng sao chép thủ công.');
+        });
+    } catch (error) {
+        console.error('Lỗi khi tạo API key:', error);
+        alert('Lỗi khi tạo API key: ' + error.message);
+    }
 }
+
+// Gắn sự kiện khi trang load
+window.onload = () => {
+    if (document.getElementById('studentBody')) {
+        // Trang index.html
+        document.getElementById('addButton').addEventListener('click', addStudent);
+        document.getElementById('searchHoTenInput').addEventListener('input', searchStudents);
+        document.getElementById('searchGioiTinhInput').addEventListener('input', searchStudents);
+        document.getElementById('searchDiaChiInput').addEventListener('input', searchStudents);
+        fetchStudents();
+    } else if (document.getElementById('updateButton')) {
+        // Trang edit.html
+        document.getElementById('updateButton').addEventListener('click', updateStudent);
+        fetchStudent();
+    } else if (document.getElementById('generateApiKeyButton')) {
+        // Trang api-docs.html
+        document.getElementById('generateApiKeyButton').addEventListener('click', generateApiKey);
+    }
+};

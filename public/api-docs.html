@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tài liệu API</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/styles.css">
 </head>
 
 <body>
@@ -17,8 +17,13 @@
                 kiếm học sinh.</p>
             <p>Cơ sở: <code>https://student-api-451c.onrender.com</code></p>
             <p><strong>Lưu ý:</strong> Tất cả các API (trừ <code>/api/generate-api-key</code>) yêu cầu header
-                <code>X-API-Key</code>. Sử dụng API dưới đây để tạo API key.
+                <code>X-API-Key</code>. Sử dụng nút dưới đây để tạo API key.
             </p>
+            <div class="form-group">
+                <button id="generateApiKeyButton" class="primary">Tạo API</button>
+                <input type="text" id="apiKeyInput" readonly
+                    style="display: none; margin-top: 10px; width: 100%; padding: 8px;">
+            </div>
         </div>
 
         <div class="card">
@@ -264,6 +269,8 @@
             <a href="index.html" class="secondary">Quay lại</a>
         </div>
     </div>
+
+    <script src="scripts.js"></script>
 </body>
 
 </html>
