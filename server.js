@@ -4,6 +4,8 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
+const path = require('path');
+const crypto = require('crypto');
 
 dotenv.config();
 
@@ -35,25 +37,46 @@ const sanitizeInput = (req, res, next) => {
     next();
 };
 
+// Middleware xác thực API key
+const authenticateApiKey = async (req, res, next) => {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) {
+        return res.status(401).json({ message: 'API key is required' });
+    }
+
+    try {
+        const key = await ApiKey.findOne({ key: apiKey });
+        if (!key) {
+            return res.status(401).json({ message: 'Invalid API key' });
+        }
+        if (!key.active) {
+            return res.status(403).json({ message: 'API key is inactive' });
+        }
+        next();
+    } catch (err) {
+        res.status(500).json({ message: 'Error validating API key', error: err.message });
+    }
+};
+
 // Sử dụng middleware
 app.use(express.json());
 app.use(cors({
     origin: [process.env.FRONTEND_URL || 'http://localhost:8080', 'null'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
 }));
 app.use(sanitizeInput);
 
 // Cấu hình CSP
-// app.use(helmet.contentSecurityPolicy({
-//     directives: {
-//         defaultSrc: ["'self'"],
-//         scriptSrc: ["'self'"],
-//         styleSrc: ["'self'"],
-//         connectSrc: ["'self'", "https://*.onrender.com"],
-//         imgSrc: ["'self'", "data:"],
-//     },
-// }));
+app.use(helmet.contentSecurityPolicy({
+    directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"],
+        connectSrc: ["'self'", "https://*.onrender.com"],
+        imgSrc: ["'self'", "data:"],
+    },
+}));
 app.use(helmet());
 app.use(compression());
 
@@ -62,8 +85,32 @@ app.use(express.static('public'));
 
 // Route gốc để trả về index.html
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// Route cho trang tài liệu API
+app.get('/api-docs.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'api-docs.html'));
+});
+
+// API tạo API key mới
+app.post('/api/generate-api-key', async (req, res) => {
+    try {
+        const newApiKey = crypto.randomBytes(16).toString('hex'); // Tạo API key ngẫu nhiên
+        const apiKey = new ApiKey({
+            key: newApiKey,
+            active: true,
+            createdAt: new Date(),
+        });
+        await apiKey.save();
+        res.status(201).json({ message: 'API key generated successfully', apiKey: newApiKey });
+    } catch (err) {
+        res.status(500).json({ message: 'Error generating API key', error: err.message });
+    }
+});
+
+// Áp dụng middleware xác thực API key cho các route API
+app.use('/api/students', authenticateApiKey);
 
 // API lấy thông tin chi tiết học sinh theo id
 app.get('/api/students/:id', async (req, res) => {
@@ -179,20 +226,6 @@ app.get('/api/students/search', async (req, res) => {
     }
 });
 
-// API cập nhật tất cả bản ghi để thêm fb_url
-app.post('/api/students/update-all', async (req, res) => {
-    try {
-        await Student.updateMany(
-            { fb_url: { $exists: false } },
-            { $set: { fb_url: '' } },
-            { upsert: false }
-        );
-        res.status(200).json({ message: 'All students updated with fb_url field' });
-    } catch (err) {
-        res.status(500).json({ message: 'Error updating students', error: err.message });
-    }
-});
-
 // Schema cho counters
 const counterSchema = new mongoose.Schema({
     _id: String,
@@ -210,6 +243,14 @@ const studentSchema = new mongoose.Schema({
     fb_url: { type: String, trim: true },
 });
 const Student = mongoose.model('Student', studentSchema, 'student');
+
+// Schema cho API key
+const apiKeySchema = new mongoose.Schema({
+    key: { type: String, required: true, unique: true },
+    active: { type: Boolean, default: true },
+    createdAt: { type: Date, default: Date.now },
+});
+const ApiKey = mongoose.model('ApiKey', apiKeySchema, 'apiKeys');
 
 // Hàm lấy và tăng giá trị id
 const getNextSequenceValue = async (sequenceName) => {

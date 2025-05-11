@@ -1,12 +1,23 @@
+// Thay bằng API key của bạn (sau khi tạo bằng /api/generate-api-key)
+const API_KEY = '93f5904153bbe3205146122cc0a6a75c'; // Ví dụ: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+
 // Hàm cho index.html
 async function fetchStudents() {
     try {
-        const response = await fetch('https://student-api-451c.onrender.com/api/students');
+        const response = await fetch('https://student-api-451c.onrender.com/api/students', {
+            headers: {
+                'X-API-Key': API_KEY,
+            },
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error fetching students');
+        }
         const students = await response.json();
         displayStudents(students);
     } catch (error) {
         console.error('Lỗi khi lấy dữ liệu:', error);
-        alert('Không thể tải danh sách học sinh. Vui lòng kiểm tra server.');
+        alert('Không thể tải danh sách học sinh: ' + error.message);
     }
 }
 
@@ -51,7 +62,10 @@ async function addStudent() {
     try {
         const response = await fetch('https://student-api-451c.onrender.com/api/students', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': API_KEY,
+            },
             body: JSON.stringify({ ho_ten, ngay_sinh, gioi_tinh, dia_chi, fb_url }),
         });
         const result = await response.json();
@@ -64,7 +78,7 @@ async function addStudent() {
         }
     } catch (error) {
         console.error('Lỗi khi thêm học sinh:', error);
-        alert('Lỗi khi thêm học sinh');
+        alert('Lỗi khi thêm học sinh: ' + error.message);
     }
 }
 
@@ -75,7 +89,12 @@ function editStudent(id) {
 async function deleteStudent(id) {
     if (confirm('Bạn có chắc muốn xóa học sinh này?')) {
         try {
-            const response = await fetch(`https://student-api-451c.onrender.com/api/students/${id}`, { method: 'DELETE' });
+            const response = await fetch(`https://student-api-451c.onrender.com/api/students/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-API-Key': API_KEY,
+                },
+            });
             const result = await response.json();
             if (response.ok) {
                 alert('Xóa học sinh thành công');
@@ -85,7 +104,7 @@ async function deleteStudent(id) {
             }
         } catch (error) {
             console.error('Lỗi khi xóa học sinh:', error);
-            alert('Lỗi khi xóa học sinh');
+            alert('Lỗi khi xóa học sinh: ' + error.message);
         }
     }
 }
@@ -114,12 +133,20 @@ const searchStudents = debounce(async () => {
         if (gioi_tinh) queryParams.append('gioi_tinh', gioi_tinh);
         if (dia_chi) queryParams.append('dia_chi', dia_chi);
 
-        const response = await fetch(`https://student-api-451c.onrender.com/api/students/search?${queryParams.toString()}`);
+        const response = await fetch(`https://student-api-451c.onrender.com/api/students/search?${queryParams.toString()}`, {
+            headers: {
+                'X-API-Key': API_KEY,
+            },
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error searching students');
+        }
         const students = await response.json();
         displayStudents(students);
     } catch (error) {
         console.error('Lỗi khi tìm kiếm:', error);
-        alert('Lỗi khi tìm kiếm học sinh');
+        alert('Lỗi khi tìm kiếm học sinh: ' + error.message);
     }
 }, 300);
 
@@ -145,7 +172,11 @@ async function fetchStudent() {
     }
 
     try {
-        const response = await fetch(`https://student-api-451c.onrender.com/api/students/${studentId}`);
+        const response = await fetch(`https://student-api-451c.onrender.com/api/students/${studentId}`, {
+            headers: {
+                'X-API-Key': API_KEY,
+            },
+        });
         if (!response.ok) {
             const errorData = await response.json();
             alert(errorData.message || 'Không tìm thấy học sinh');
@@ -160,7 +191,7 @@ async function fetchStudent() {
         document.getElementById('fbUrlInput').value = student.fb_url || '';
     } catch (error) {
         console.error('Lỗi khi lấy dữ liệu học sinh:', error);
-        alert('Lỗi khi lấy dữ liệu học sinh');
+        alert('Lỗi khi lấy dữ liệu học sinh: ' + error.message);
         window.location.href = 'index.html';
     }
 }
@@ -180,7 +211,10 @@ async function updateStudent() {
     try {
         const response = await fetch(`https://student-api-451c.onrender.com/api/students/${studentId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': API_KEY,
+            },
             body: JSON.stringify({ ho_ten, ngay_sinh, gioi_tinh, dia_chi, fb_url }),
         });
         const result = await response.json();
@@ -192,7 +226,7 @@ async function updateStudent() {
         }
     } catch (error) {
         console.error('Lỗi khi cập nhật học sinh:', error);
-        alert('Lỗi khi cập nhật học sinh');
+        alert('Lỗi khi cập nhật học sinh: ' + error.message);
     }
 }
 
