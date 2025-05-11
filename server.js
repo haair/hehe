@@ -107,6 +107,29 @@ app.post('/api/generate-api-key', async (req, res) => {
 // Áp dụng middleware xác thực API key cho các route API
 app.use('/api/students', authenticateApiKey);
 
+// API tìm kiếm học sinh theo ho_ten, gioi_tinh, dia_chi
+app.get('/api/students/search', async (req, res) => {
+    const { ho_ten, gioi_tinh, dia_chi } = req.query;
+    const filter = {};
+
+    if (ho_ten) {
+        filter.ho_ten = { $regex: ho_ten, $options: 'i' }; // tìm gần đúng, không phân biệt hoa thường
+    }
+    if (gioi_tinh) {
+        filter.gioi_tinh = gioi_tinh;
+    }
+    if (dia_chi) {
+        filter.dia_chi = { $regex: dia_chi, $options: 'i' };
+    }
+
+    try {
+        const results = await Student.find(filter, { id: 1, ho_ten: 1, ngay_sinh: 1, gioi_tinh: 1, dia_chi: 1, fb_url: 1, _id: 0 });
+        res.status(200).json(results);
+    } catch (err) {
+        res.status(500).json({ error: 'Lỗi khi tìm kiếm người dùng' });
+    }
+});
+
 // API lấy thông tin chi tiết học sinh theo id
 app.get('/api/students/:id', async (req, res) => {
     try {
@@ -201,25 +224,7 @@ app.delete('/api/students/:id', async (req, res) => {
     }
 });
 
-// API tìm kiếm học sinh theo ho_ten, gioi_tinh, dia_chi
-app.get('/api/students/search', async (req, res) => {
-    try {
-        const { ho_ten, gioi_tinh, dia_chi } = req.query;
-        const query = {};
 
-        const allowedFields = ['ho_ten', 'gioi_tinh', 'dia_chi'];
-        for (let key in req.query) {
-            if (allowedFields.includes(key) && typeof req.query[key] === 'string') {
-                query[key] = { $regex: req.query[key], $options: 'i' };
-            }
-        }
-
-        const students = await Student.find(query, { id: 1, ho_ten: 1, ngay_sinh: 1, gioi_tinh: 1, dia_chi: 1, fb_url: 1, _id: 0 });
-        res.status(200).json(students);
-    } catch (err) {
-        res.status(500).json({ message: 'Error searching students', error: err.message });
-    }
-});
 
 // Schema cho counters
 const counterSchema = new mongoose.Schema({
