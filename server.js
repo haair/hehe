@@ -85,12 +85,7 @@ app.use(express.static('public'));
 
 // Route gốc để trả về index.html
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'api-docs.html'));
-});
-
-// Route cho trang tài liệu API
-app.get('/api-docs.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'api-docs.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // API tạo API key mới

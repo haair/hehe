@@ -1,12 +1,10 @@
-// Thay bằng API key của bạn (sau khi tạo bằng /api/generate-api-key)
-const API_KEY = 'your-api-key-here'; // Ví dụ: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
 
 // Hàm cho index.html
 async function fetchStudents() {
     try {
         const response = await fetch('https://student-api-451c.onrender.com/api/students', {
             headers: {
-                'X-API-Key': API_KEY,
+                'X-API-Key': process.env.API_KEY,
             },
         });
         if (!response.ok) {
@@ -72,7 +70,7 @@ async function addStudent() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-API-Key': API_KEY,
+                'X-API-Key': process.env.API_KEY,
             },
             body: JSON.stringify({ ho_ten, ngay_sinh, gioi_tinh, dia_chi, fb_url }),
         });
@@ -100,7 +98,7 @@ async function deleteStudent(id) {
             const response = await fetch(`https://student-api-451c.onrender.com/api/students/${id}`, {
                 method: 'DELETE',
                 headers: {
-                    'X-API-Key': API_KEY,
+                    'X-API-Key': process.env.API_KEY,
                 },
             });
             const result = await response.json();
@@ -143,7 +141,7 @@ const searchStudents = debounce(async () => {
 
         const response = await fetch(`https://student-api-451c.onrender.com/api/students/search?${queryParams.toString()}`, {
             headers: {
-                'X-API-Key': API_KEY,
+                'X-API-Key': process.env.API_KEY,
             },
         });
         if (!response.ok) {
@@ -182,7 +180,7 @@ async function fetchStudent() {
     try {
         const response = await fetch(`https://student-api-451c.onrender.com/api/students/${studentId}`, {
             headers: {
-                'X-API-Key': API_KEY,
+                'X-API-Key': process.env.API_KEY,
             },
         });
         if (!response.ok) {
@@ -221,7 +219,7 @@ async function updateStudent() {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'X-API-Key': API_KEY,
+                'X-API-Key': process.env.API_KEY,
             },
             body: JSON.stringify({ ho_ten, ngay_sinh, gioi_tinh, dia_chi, fb_url }),
         });
