@@ -116,7 +116,7 @@ app.get('/api/students/search', async (req, res) => {
         filter.ho_ten = { $regex: ho_ten, $options: 'i' }; // tìm gần đúng, không phân biệt hoa thường
     }
     if (gioi_tinh) {
-        filter.gioi_tinh = gioi_tinh;
+        filter.gioi_tinh = { gioi_tinh, $options: 'i' };
     }
     if (dia_chi) {
         filter.dia_chi = { $regex: dia_chi, $options: 'i' };
