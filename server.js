@@ -60,23 +60,23 @@ const authenticateApiKey = async (req, res, next) => {
 
 // Sử dụng middleware
 app.use(express.json());
-app.use(cors({
-    origin: [process.env.FRONTEND_URL || 'http://localhost:8080', 'null'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
-}));
+// app.use(cors({
+//     origin: [process.env.FRONTEND_URL || 'http://localhost:8080', 'null'],
+//     methods: ['GET', 'POST', 'PUT', 'DELETE'],
+//     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+// }));
 app.use(sanitizeInput);
 
 // Cấu hình CSP
-app.use(helmet.contentSecurityPolicy({
-    directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'"],
-        connectSrc: ["'self'", "https://*.onrender.com"],
-        imgSrc: ["'self'", "data:"],
-    },
-}));
+// app.use(helmet.contentSecurityPolicy({
+//     directives: {
+//         defaultSrc: ["'self'"],
+//         scriptSrc: ["'self'"],
+//         styleSrc: ["'self'"],
+//         connectSrc: ["'self'", "https://*.onrender.com"],
+//         imgSrc: ["'self'", "data:"],
+//     },
+// }));
 app.use(helmet());
 app.use(compression());
 
@@ -109,17 +109,24 @@ app.use('/api/students', authenticateApiKey);
 
 // API tìm kiếm học sinh theo ho_ten, gioi_tinh, dia_chi
 app.get('/api/students/search', async (req, res) => {
-    const { ho_ten, gioi_tinh, dia_chi } = req.query;
+    const { ho_ten, gioi_tinh, dia_chi, thang } = req.query;
     const filter = {};
 
     if (ho_ten) {
         filter.ho_ten = { $regex: ho_ten, $options: 'i' }; // tìm gần đúng, không phân biệt hoa thường
     }
     if (gioi_tinh) {
-        filter.gioi_tinh = { gioi_tinh, $options: 'i' };
+        filter.gioi_tinh = { $regex: gioi_tinh, $options: 'i' };
     }
     if (dia_chi) {
         filter.dia_chi = { $regex: dia_chi, $options: 'i' };
+    }
+    if (thang) {
+        if (!/^\d{1,2}$/.test(thang) || thang < 1 || thang > 12) {
+            return res.status(400).json({ error: 'Tháng không hợp lệ (1–12)' });
+        }
+        const paddedMonth = thang.padStart?.(2, '0') || thang.toString().padStart(2, '0');
+        filter.ngay_sinh = { $regex: new RegExp(`^\\d{2}/${paddedMonth}/\\d{4}$`) };
     }
 
     try {
