@@ -115,8 +115,18 @@ app.get('/api/students/search', async (req, res) => {
     if (ho_ten) {
         filter.ho_ten = { $regex: ho_ten, $options: 'i' }; // tìm gần đúng, không phân biệt hoa thường
     }
-    if (gioi_tinh) {
-        filter.gioi_tinh = { $regex: gioi_tinh, $options: 'i' };
+    if (gioi_tinh !== undefined) {
+        const gioiTinhMapping = {
+            '0': 'Nữ',
+            '1': 'Nam'
+        };
+
+        const mappedGender = gioiTinhMapping[gioi_tinh];
+        if (!mappedGender) {
+            return res.status(400).json({ error: 'Giới tính không hợp lệ. Dùng 0 (Nữ) hoặc 1 (Nam).' });
+        }
+
+        filter.gioi_tinh = mappedGender;
     }
     if (dia_chi) {
         filter.dia_chi = { $regex: dia_chi, $options: 'i' };
